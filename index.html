@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MediStock — Medical Store Manager</title>
+<style>
+:root{--bg:#f5f7f4;--card:#fff;--text:#18322f;--muted:#6c7b78;--accent:#177e78;--line:#dfe7e3;--danger:#c65353;--warn:#b98520}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
+header{position:sticky;top:0;z-index:5;background:#173f3a;color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-size:21px;font-weight:800}.sub{font-size:11px;opacity:.7}
+nav{display:flex;gap:7px;overflow:auto;padding:10px;background:#fff;border-bottom:1px solid var(--line)}
+nav button{white-space:nowrap;border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:10px;color:var(--text)}nav button.active{background:#dff1ed;border-color:#9accc3;font-weight:700}
+main{max-width:1100px;margin:auto;padding:18px}.page{display:none}.page.active{display:block}
+h1{margin:4px 0 4px;font-size:28px}.muted{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}.metric{font-size:28px;font-weight:800;margin-top:8px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.btn{border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700}.btn.secondary{background:#e8efed;color:var(--text)}.btn.danger{background:var(--danger)}
+.tablewrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{text-align:left;padding:11px;border-bottom:1px solid var(--line);font-size:14px}.table th{background:#f1f5f3}
+.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}.field input,.field select{width:100%;padding:10px;border:1px solid #cfdad6;border-radius:9px;background:white}
+.formcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:15px}
+.alert{padding:12px;border-radius:10px;margin:8px 0;background:#fff5dc}.dangerbox{background:#ffe9e9}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+@media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:1fr 1fr}main{padding:12px}.metric{font-size:24px}}
+@media(max-width:470px){.formgrid{grid-template-columns:1fr}.grid{gap:8px}.card{padding:12px}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">💊 MediStock</div><div class="sub">Medical Store Stock Management • V1</div></div><button class="btn secondary" onclick="backup()">Backup</button></header>
+<nav id="nav"></nav>
+<main>
+<section id="dashboard" class="page active">
+<h1>Dashboard</h1><div class="muted">Your store's stock pulse</div>
+<div class="grid" id="metrics"></div>
+<div class="actions"><button class="btn" onclick="showPage('medicines')">+ Add Medicine</button><button class="btn secondary" onclick="showPage('grn')">+ Purchase / GRN</button></div>
+<div class="formcard"><h3>Attention</h3><div id="attention"></div></div>
+</section>
+
+<section id="medicines" class="page">
+<h1>Medicine Master</h1><div class="muted">Maintain the master list. Batch and expiry are entered through GRN.</div>
+<div class="formcard"><div class="formgrid">
+<div class="field"><label>Medicine Name *</label><input id="m_name"></div>
+<div class="field"><label>Salt / Composition</label><input id="m_salt"></div>
+<div class="field"><label>Company</label><input id="m_company"></div>
+<div class="field"><label>Type</label><select id="m_type"><option>Tablet</option><option>Capsule</option><option>Syrup</option><option>Injection</option><option>Cream</option><option>Ointment</option><option>Drops</option><option>Sachet</option><option>Other</option></select></div>
+<div class="field"><label>Pack / Unit</label><input id="m_pack" placeholder="e.g. 10 tablets / 100 ml"></div>
+<div class="field"><label>HSN</label><input id="m_hsn"></div>
+<div class="field"><label>GST %</label><input id="m_gst" type="number" step="0.01" value="0"></div>
+<div class="field"><label>Minimum Stock</label><input id="m_min" type="number" value="0"></div>
+<div class="field"><label>Rack / Location</label><input id="m_rack"></div>
+</div><div class="actions"><button class="btn" onclick="addMedicine()">Save Medicine</button></div></div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Salt</th><th>Company</th><th>Type</th><th>Pack</th><th>Min Stock</th><th>Action</th></tr></thead><tbody id="medicineRows"></tbody></table></div>
+</section>
+
+<section id="suppliers" class="page">
+<h1>Supplier Master</h1><div class="muted">Add distributors / suppliers.</div>
+<div class="formcard"><div class="formgrid">
+<div class="field"><label>Supplier Name *</label><input id="s_name"></div><div class="field"><label>Phone</label><input id="s_phone"></div><div class="field"><label>GSTIN</label><input id="s_gst"></div><div class="field"><label>Address</label><input id="s_address"></div>
+</div><div class="actions"><button class="btn" onclick="addSupplier()">Save Supplier</button></div></div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Supplier</th><th>Phone</th><th>GSTIN</th><th>Address</th><th>Action</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
+</section>
+
+<section id="grn" class="page">
+<h1>GRN / Purchase Entry</h1><div class="muted">Each purchase creates a batch and increases stock.</div>
+<div class="formcard"><div class="formgrid">
+<div class="field"><label>Bill No *</label><input id="g_bill"></div><div class="field"><label>Bill Date</label><input id="g_date" type="date"></div>
+<div class="field"><label>Supplier</label><select id="g_supplier"></select></div><div class="field"><label>Medicine *</label><select id="g_med"></select></div>
+<div class="field"><label>Batch No *</label><input id="g_batch"></div><div class="field"><label>Expiry *</label><input id="g_expiry" type="month"></div>
+<div class="field"><label>Quantity *</label><input id="g_qty" type="number" min="0"></div><div class="field"><label>Free Qty</label><input id="g_free" type="number" min="0" value="0"></div>
+<div class="field"><label>Purchase Rate</label><input id="g_rate" type="number" step="0.01" value="0"></div><div class="field"><label>MRP</label><input id="g_mrp" type="number" step="0.01" value="0"></div>
+<div class="field"><label>GST %</label><input id="g_gst" type="number" step="0.01" value="0"></div>
+</div><div class="actions"><button class="btn" onclick="saveGRN()">Save GRN & Add Stock</button></div></div>
+</section>
+
+<section id="stock" class="page">
+<h1>Batch-wise Stock</h1><div class="muted">Live quantity by medicine and batch.</div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>MRP</th><th>Purchase Rate</th><th>Supplier</th></tr></thead><tbody id="stockRows"></tbody></table></div>
+</section>
+
+<section id="ledger" class="page">
+<h1>Stock Ledger</h1><div class="muted">Every stock movement is recorded.</div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Date/Time</th><th>Medicine</th><th>Batch</th><th>Type</th><th>In</th><th>Out</th><th>Balance</th><th>Reference</th></tr></thead><tbody id="ledgerRows"></tbody></table></div>
+</section>
+
+<section id="expiry" class="page">
+<h1>Expiry Management</h1><div class="muted">Nearest-expiry batches appear first.</div>
+<div class="tablewrap"><table class="table"><thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>Status</th></tr></thead><tbody id="expiryRows"></tbody></table></div>
+</section>
+
+<section id="sales" class="page">
+<h1>Sales</h1><div class="muted">V1: simple batch sale. Stock decreases and ledger is updated.</div>
+<div class="formcard"><div class="formgrid">
+<div class="field"><label>Bill No *</label><input id="sale_bill"></div><div class="field"><label>Medicine *</label><select id="sale_med" onchange="fillSaleBatches()"></select></div>
+<div class="field"><label>Batch *</label><select id="sale_batch"></select></div><div class="field"><label>Quantity *</label><input id="sale_qty" type="number" min="1"></div>
+<div class="field"><label>Sale Rate / Unit</label><input id="sale_rate" type="number" step="0.01" value="0"></div>
+</div><div class="actions"><button class="btn" onclick="saveSale()">Save Sale</button></div></div>
+</section>
+
+<section id="reports" class="page">
+<h1>Reports</h1><div class="muted">Quick stock summary.</div><div id="reportContent"></div>
+</section>
+</main>
+<script>
+const KEY='medistock_v1';
+let db=JSON.parse(localStorage.getItem(KEY)||'{"medicines":[],"suppliers":[],"batches":[],"ledger":[],"sales":[]}');
+const pages=[['dashboard','🏠 Dashboard'],['medicines','💊 Medicine Master'],['suppliers','🏢 Suppliers'],['grn','📦 GRN / Purchase'],['stock','🔢 Batch Stock'],['ledger','📒 Stock Ledger'],['sales','🧾 Sales'],['expiry','⏰ Expiry'],['reports','📊 Reports']];
+function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function showPage(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));render()}
+function nav(){document.getElementById('nav').innerHTML=pages.map((p,i)=>`<button data-page="${p[0]}" class="${i===0?'active':''}" onclick="showPage('${p[0]}')">${p[1]}</button>`).join('')}
+function addMedicine(){let name=m_name.value.trim();if(!name)return alert('Medicine name is required.');db.medicines.push({id:crypto.randomUUID(),name,salt:m_salt.value,company:m_company.value,type:m_type.value,pack:m_pack.value,hsn:m_hsn.value,gst:+m_gst.value||0,min:+m_min.value||0,rack:m_rack.value});['m_name','m_salt','m_company','m_pack','m_hsn','m_rack'].forEach(x=>document.getElementById(x).value='');save();alert('Medicine saved.')}
+function addSupplier(){let name=s_name.value.trim();if(!name)return alert('Supplier name is required.');db.suppliers.push({id:crypto.randomUUID(),name,phone:s_phone.value,gst:s_gst.value,address:s_address.value});s_name.value=s_phone.value=s_gst.value=s_address.value='';save();alert('Supplier saved.')}
+function saveGRN(){let med=g_med.value,batch=g_batch.value.trim(),qty=+g_qty.value||0;if(!med||!batch||qty<=0)return alert('Medicine, batch and quantity are required.');let total=qty+(+g_free.value||0), existing=db.batches.find(b=>b.medId===med&&b.batch===batch&&b.expiry===g_expiry.value);if(existing){existing.qty+=total;existing.mrp=+g_mrp.value||existing.mrp;existing.rate=+g_rate.value||existing.rate}else{db.batches.push({id:crypto.randomUUID(),medId:med,batch,expiry:g_expiry.value,qty:total,mrp:+g_mrp.value||0,rate:+g_rate.value||0,supplierId:g_supplier.value,bill:g_bill.value,date:g_date.value})}let m=db.medicines.find(x=>x.id===med);db.ledger.unshift({time:new Date().toLocaleString(),medId:med,batch,type:'PURCHASE',in:total,out:0,balance:stockQty(med,batch),ref:g_bill.value});save();alert('GRN saved and stock added.')}
+function stockQty(med,batch){let b=db.batches.find(x=>x.medId===med&&x.batch===batch);return b?b.qty:0}
+function saveSale(){let med=sale_med.value,batch=sale_batch.value,qty=+sale_qty.value||0,b=db.batches.find(x=>x.id===batch);if(!b||qty<=0)return alert('Select batch and quantity.');if(qty>b.qty)return alert('Not enough stock in this batch.');b.qty-=qty;db.sales.push({time:new Date().toLocaleString(),bill:sale_bill.value,medId:med,batchId:batch,qty,rate:+sale_rate.value||b.mrp});db.ledger.unshift({time:new Date().toLocaleString(),medId:med,batch:b.batch,type:'SALE',in:0,out:qty,balance:b.qty,ref:sale_bill.value});save();alert('Sale saved and stock reduced.')}
+function render(){medicineRows.innerHTML=db.medicines.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(m.salt)}</td><td>${esc(m.company)}</td><td>${esc(m.type)}</td><td>${esc(m.pack)}</td><td>${m.min}</td><td><button class="btn danger" onclick="delMed('${m.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">No medicines yet.</td></tr>';
+supplierRows.innerHTML=db.suppliers.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td>${esc(s.gst)}</td><td>${esc(s.address)}</td><td><button class="btn danger" onclick="delSup('${s.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No suppliers yet.</td></tr>';
+g_med.innerHTML='<option value="">Select medicine</option>'+db.medicines.map(m=>`<option value="${m.id}">${esc(m.name)} — ${esc(m.type)}</option>`).join('');sale_med.innerHTML='<option value="">Select medicine</option>'+db.medicines.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');g_supplier.innerHTML='<option value="">Select supplier</option>'+db.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
+stockRows.innerHTML=db.batches.map(b=>{let m=db.medicines.find(x=>x.id===b.medId),s=db.suppliers.find(x=>x.id===b.supplierId);return `<tr><td>${esc(m?.name)}</td><td>${esc(b.batch)}</td><td>${esc(b.expiry)}</td><td>${b.qty}</td><td>₹${b.mrp.toFixed(2)}</td><td>₹${b.rate.toFixed(2)}</td><td>${esc(s?.name||'')}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No stock yet. Add a GRN.</td></tr>';
+ledgerRows.innerHTML=db.ledger.map(l=>{let m=db.medicines.find(x=>x.id===l.medId);return `<tr><td>${esc(l.time)}</td><td>${esc(m?.name)}</td><td>${esc(l.batch)}</td><td>${l.type}</td><td>${l.in}</td><td>${l.out}</td><td>${l.balance}</td><td>${esc(l.ref)}</td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No movements yet.</td></tr>';
+let now=new Date(),soon=new Date(now);soon.setDate(soon.getDate()+90);expiryRows.innerHTML=db.batches.filter(b=>b.qty>0).sort((a,b)=>a.expiry.localeCompare(b.expiry)).map(b=>{let m=db.medicines.find(x=>x.id===b.medId),d=new Date(b.expiry+'-01'),status=d<now?'EXPIRED':d<soon?'NEAR EXPIRY':'OK';return `<tr><td>${esc(m?.name)}</td><td>${esc(b.batch)}</td><td>${esc(b.expiry)}</td><td>${b.qty}</td><td>${status}</td></tr>`}).join('')||'<tr><td colspan="5" class="empty">No active batches.</td></tr>';
+fillSaleBatches();dashboard();report();
+}
+function fillSaleBatches(){let med=sale_med.value;sale_batch.innerHTML='<option value="">Select batch</option>'+db.batches.filter(b=>b.medId===med&&b.qty>0).sort((a,b)=>a.expiry.localeCompare(b.expiry)).map(b=>`<option value="${b.id}">${esc(b.batch)} • Exp ${esc(b.expiry)} • Qty ${b.qty}</option>`).join('')}
+function dashboard(){let total=db.medicines.length,qty=db.batches.reduce((a,b)=>a+b.qty,0),low=db.medicines.filter(m=>stockForMed(m.id)<=m.min).length,near=db.batches.filter(b=>b.qty>0&&new Date(b.expiry+'-01')<new Date(Date.now()+90*864e5)).length;metrics.innerHTML=[['💊','Medicines',total],['📦','Units in Stock',qty],['⚠️','Low Stock',low],['⏰','Near/Expired',near]].map(x=>`<div class="card"><div>${x[0]} ${x[1]}</div><div class="metric">${x[2]}</div></div>`).join('');let items=db.medicines.filter(m=>stockForMed(m.id)<=m.min).slice(0,8);attention.innerHTML=items.length?items.map(m=>`<div class="alert">${esc(m.name)} — <b>${stockForMed(m.id)}</b> units (minimum ${m.min})</div>`).join(''):'<div class="muted">No low-stock items right now.</div>'}
+function stockForMed(id){return db.batches.filter(b=>b.medId===id).reduce((a,b)=>a+b.qty,0)}
+function report(){let value=db.batches.reduce((a,b)=>a+b.qty*b.rate,0);reportContent.innerHTML=`<div class="grid"><div class="card">Stock value<div class="metric">₹${value.toFixed(2)}</div></div><div class="card">Purchase entries<div class="metric">${db.ledger.filter(x=>x.type==='PURCHASE').length}</div></div><div class="card">Sales entries<div class="metric">${db.sales.length}</div></div><div class="card">Batches<div class="metric">${db.batches.length}</div></div></div>`}
+function delMed(id){if(confirm('Delete this medicine? Existing stock will remain but medicine master will be removed.')){db.medicines=db.medicines.filter(x=>x.id!==id);save()}}
+function delSup(id){if(confirm('Delete supplier?')){db.suppliers=db.suppliers.filter(x=>x.id!==id);save()}}
+function backup(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='medistock-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+nav();document.getElementById('g_date').value=new Date().toISOString().slice(0,10);render();
+</script>
+</body>
+</html>
