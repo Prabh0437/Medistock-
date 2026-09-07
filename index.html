@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediStock ERP - Enterprise Pharmacy System</title>
+  <title>Baba Deep Singh Ji Medical Store - ERP</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -22,15 +22,16 @@
     
     /* LOGIN SCREEN */
     #login-overlay { position: fixed; inset: 0; background: #020617; display: flex; align-items: center; justify-content: center; z-index: 999; }
-    .login-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 30px; width: 340px; text-align: center; }
-    .login-card h2 { margin-bottom: 8px; font-size: 1.5rem; }
-    .login-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
+    .login-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 30px; width: 360px; text-align: center; }
+    .login-card h2 { margin-bottom: 4px; font-size: 1.3rem; color: var(--accent); }
+    .login-card h4 { font-size: 0.9rem; font-weight: 400; color: var(--text-muted); margin-bottom: 15px; }
     
     /* MAIN LAYOUT */
     #app-container { display: none; min-height: 100vh; flex-direction: column; }
-    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
-    .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
-    nav button { background: transparent; border: none; color: var(--text-muted); padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: 0.2s; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--text-main); }
+    .session-badge { background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin-left: 8px; }
+    nav button { background: transparent; border: none; color: var(--text-muted); padding: 8px 14px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: 0.2s; }
     nav button:hover, nav button.active { background: var(--border); color: var(--text-main); }
     
     .container { padding: 25px; max-width: 1200px; margin: 0 auto; width: 100%; }
@@ -64,6 +65,7 @@
       #printable-bill, #printable-bill * { visibility: visible; }
       #printable-bill { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; padding: 20px; }
       #printable-bill th, #printable-bill td { border-color: #ccc; }
+      .no-print { display: none !important; }
     }
   </style>
 </head>
@@ -72,10 +74,10 @@
   <!-- LOGIN OVERLAY -->
   <div id="login-overlay">
     <div class="login-card">
-      <h2>MediStock ERP</h2>
-      <p>Enter Security PIN to Access</p>
+      <h2>Baba Deep Singh Ji Medical Store</h2>
+      <h4>Session: 2026-27</h4>
       <div class="form-group">
-        <input type="password" id="pinInput" placeholder="Default PIN: 1234" style="text-align: center; font-size: 1.2rem;">
+        <input type="password" id="pinInput" placeholder="Enter Security PIN (1234)" style="text-align: center; font-size: 1.1rem;">
       </div>
       <button class="btn" onclick="login()" style="width: 100%;">Unlock Dashboard</button>
     </div>
@@ -84,14 +86,17 @@
   <!-- MAIN APP CONTAINER -->
   <div id="app-container">
     <header>
-      <div class="logo">💊 MediStock Enterprise</div>
+      <div class="logo">
+        🏥 Baba Deep Singh Ji Medical Store 
+        <span class="session-badge">Session: 2026-27</span>
+      </div>
       <nav>
         <button class="active" onclick="switchTab('grn-tab', this)">GRN Entry</button>
         <button onclick="switchTab('billing-tab', this)">Billing</button>
         <button onclick="switchTab('cn-tab', this)">Credit Note (CN)</button>
         <button onclick="switchTab('head-tab', this)">Heads Master</button>
         <button onclick="switchTab('stock-tab', this)">Current Stock</button>
-        <button class="btn-danger" onclick="logout()" style="margin-left: 15px; padding: 6px 12px;">Lock</button>
+        <button class="btn-danger" onclick="logout()" style="margin-left: 10px; padding: 6px 12px;">Lock</button>
       </nav>
     </header>
 
@@ -141,7 +146,11 @@
       <div id="billing-tab" class="tab-content" style="display:none;">
         <div class="card">
           <h3>POS Auto-Billing System</h3>
-          <div class="grid-3">
+          <div class="grid-4">
+            <div class="form-group">
+              <label>Bill No (Auto Generated)</label>
+              <input type="text" id="billNumberDisplay" disabled style="font-weight: bold; color: var(--accent);">
+            </div>
             <div class="form-group">
               <label>Patient/Customer Name</label>
               <input type="text" id="billCustName" placeholder="Patient Name">
@@ -173,8 +182,18 @@
         </div>
 
         <div class="card" id="printable-bill">
-          <h3>Invoice Preview</h3>
-          <p><strong>Customer:</strong> <span id="lblCust">-</span> | <strong>Date:</strong> <span id="lblBillDate"></span></p>
+          <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #ccc; padding-bottom: 10px;">
+            <h2 style="margin:0; font-size: 1.5rem; color:#000;">Baba Deep Singh Ji Medical Store</h2>
+            <p style="margin:2px 0; font-size:0.85rem; color:#555;">Retail Pharmacy & Medical Supplies | Session: 2026-27</p>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.9rem;">
+            <p><strong>Bill No:</strong> <span id="lblBillNo">-</span></p>
+            <p><strong>Date:</strong> <span id="lblBillDate"></span></p>
+          </div>
+          <div style="margin-bottom: 15px; font-size: 0.9rem;">
+            <p><strong>Customer Name:</strong> <span id="lblCust">-</span> | <strong>Phone:</strong> <span id="lblPhone">-</span></p>
+          </div>
+
           <table>
             <thead>
               <tr>
@@ -188,7 +207,7 @@
             <tbody id="billTableBody"></tbody>
           </table>
           <h2 style="text-align: right; margin-top: 15px; color: var(--accent);">Total: ₹<span id="billGrandTotal">0.00</span></h2>
-          <button class="btn btn-success" onclick="finalizeBill()" style="margin-top: 15px;">Finalize & Print Invoice</button>
+          <button class="btn btn-success no-print" onclick="finalizeBill()" style="margin-top: 15px;">Finalize & Print Invoice</button>
         </div>
       </div>
 
@@ -239,7 +258,7 @@
       <!-- 5. CURRENT STOCK -->
       <div id="stock-tab" class="tab-content" style="display:none;">
         <div class="card">
-          <h3>Real-Time Pharmacy Stock Ledger</h3>
+          <h3>Real-Time Pharmacy Stock Ledger (Session 2026-27)</h3>
           <table>
             <thead>
               <tr>
@@ -263,20 +282,32 @@
     // INITIAL DATABASE SETUP
     let db = {
       pin: "1234",
+      session: "2026-27",
+      billCounter: 1,
       heads: ["Antibiotics", "Analgesics", "Surgicals", "General"],
-      inventory: [], // { head, name, batch, expiry, qty, purchasePrice, sellPrice }
+      inventory: [],
       activeBill: []
     };
 
     function loadDB() {
-      const saved = localStorage.getItem('medistock_db');
+      const saved = localStorage.getItem('medistock_bds_db');
       if (saved) db = JSON.parse(saved);
       refreshAll();
+      updateBillNumberUI();
     }
 
     function saveDB() {
-      localStorage.setItem('medistock_db', JSON.stringify(db));
+      localStorage.setItem('medistock_bds_db', JSON.stringify(db));
       refreshAll();
+    }
+
+    function getFormattedBillNo() {
+      return `BDS/2026-27/${String(db.billCounter).padStart(3, '0')}`;
+    }
+
+    function updateBillNumberUI() {
+      document.getElementById('billNumberDisplay').value = getFormattedBillNo();
+      document.getElementById('lblBillNo').innerText = getFormattedBillNo();
     }
 
     function login() {
@@ -302,19 +333,15 @@
       if(btn) btn.classList.add('active');
     }
 
-    // REFRESH UI DROPDOWNS & TABLES
     function refreshAll() {
-      // Refresh Head Options
       const grnHeadSel = document.getElementById('grnHeadSelect');
       grnHeadSel.innerHTML = '';
       db.heads.forEach(h => grnHeadSel.innerHTML += `<option value="${h}">${h}</option>`);
 
-      // Refresh Head Table
       const headBody = document.getElementById('headListBody');
       headBody.innerHTML = '';
       db.heads.forEach((h, idx) => headBody.innerHTML += `<tr><td>${idx+1}</td><td>${h}</td><td>Active Category</td></tr>`);
 
-      // Refresh Stock Table
       const stockBody = document.getElementById('stockTableBody');
       stockBody.innerHTML = '';
       db.inventory.forEach(i => {
@@ -324,7 +351,6 @@
         </tr>`;
       });
 
-      // Refresh Billing & CN Select Dropdowns
       const billSel = document.getElementById('billItemSelect');
       const cnSel = document.getElementById('cnItemSelect');
       billSel.innerHTML = '<option value="">-- Select Medicine Batch --</option>';
@@ -338,7 +364,6 @@
       });
     }
 
-    // PROCESS GRN
     function processGRN() {
       const name = document.getElementById('grnMedName').value;
       const batch = document.getElementById('grnBatch').value;
@@ -362,7 +387,6 @@
       document.getElementById('grnBatch').value = '';
     }
 
-    // BILLING AUTO-FILL & ADD
     function autoFillPrice() {
       const idx = document.getElementById('billItemSelect').value;
       if(idx !== "") {
@@ -396,6 +420,7 @@
 
     function renderBill() {
       document.getElementById('lblCust').innerText = document.getElementById('billCustName').value || 'Walk-in Customer';
+      document.getElementById('lblPhone').innerText = document.getElementById('billCustPhone').value || 'N/A';
       document.getElementById('lblBillDate').innerText = new Date().toLocaleDateString();
       const tbody = document.getElementById('billTableBody');
       tbody.innerHTML = '';
@@ -412,18 +437,21 @@
     function finalizeBill() {
       if(db.activeBill.length === 0) return alert('Bill is empty!');
       
-      // Deduct Stock
       db.activeBill.forEach(bItem => {
         db.inventory[bItem.invIndex].qty -= bItem.qty;
       });
 
       window.print();
+      
       db.activeBill = [];
+      db.billCounter++;
       saveDB();
+      updateBillNumberUI();
       renderBill();
+      document.getElementById('billCustName').value = '';
+      document.getElementById('billCustPhone').value = '';
     }
 
-    // CREDIT NOTE (CN)
     function processCN() {
       const idx = document.getElementById('cnItemSelect').value;
       const qty = parseInt(document.getElementById('cnQty').value);
@@ -435,7 +463,6 @@
       alert('Credit Note Issued: Stock Adjusted Successfully!');
     }
 
-    // ADD HEAD
     function addHead() {
       const title = document.getElementById('newHeadTitle').value.trim();
       if(title && !db.heads.includes(title)) {
