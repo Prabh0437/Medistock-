@@ -131,3 +131,217 @@ nav();document.getElementById('g_date').value=new Date().toISOString().slice(0,1
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediStock - Billing & Management</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --secondary: #1e293b;
+      --bg: #f8fafc;
+      --white: #ffffff;
+    }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg); color: #333; }
+    header { background: var(--secondary); color: var(--white); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .nav-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
+    .container { padding: 20px; max-width: 1100px; margin: 0 auto; }
+    .card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    h2 { color: var(--secondary); margin-top: 0; }
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-weight: bold; margin-bottom: 5px; }
+    input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f1f5f9; }
+    .total-box { text-align: right; margin-top: 15px; font-size: 1.2rem; font-weight: bold; }
+    .print-btn { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    @media print {
+      body * { visibility: hidden; }
+      #printableArea, #printableArea * { visibility: visible; }
+      #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="no-print">
+  <h1>MediStock</h1>
+  <div>
+    <button class="nav-btn" onclick="showSection('billing')">Billing</button>
+    <button class="nav-btn" onclick="showSection('new-head')">Add New Head</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- NEW HEAD SECTION -->
+  <div id="new-head" class="card no-print" style="display: none;">
+    <h2>Add New Head / Category</h2>
+    <div class="grid">
+      <div class="form-group">
+        <label>Head Name</label>
+        <input type="text" id="headName" placeholder="e.g., Antibiotics, Surgical">
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="headDesc" placeholder="Head description">
+      </div>
+    </div>
+    <button class="nav-btn" onclick="addHead()">Save Head</button>
+    <h3 style="margin-top: 20px;">Existing Heads</h3>
+    <ul id="headList"></ul>
+  </div>
+
+  <!-- BILLING SECTION -->
+  <div id="billing" class="card">
+    <div class="no-print">
+      <h2>New Bill Generation</h2>
+      <div class="grid">
+        <div class="form-group">
+          <label>Patient/Customer Name</label>
+          <input type="text" id="custName" placeholder="Enter Name">
+        </div>
+        <div class="form-group">
+          <label>Contact Number</label>
+          <input type="text" id="custPhone" placeholder="Enter Phone">
+        </div>
+        <div class="form-group">
+          <label>Select Head/Category</label>
+          <select id="billHeadSelect"></select>
+        </div>
+      </div>
+
+      <hr>
+
+      <h3>Add Item</h3>
+      <div class="grid">
+        <div class="form-group">
+          <label>Medicine / Item Name</label>
+          <input type="text" id="itemName" placeholder="Medicine Name">
+        </div>
+        <div class="form-group">
+          <label>Price (per unit)</label>
+          <input type="number" id="itemPrice" value="0">
+        </div>
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="itemQty" value="1">
+        </div>
+      </div>
+      <button class="nav-btn" onclick="addItemToBill()">Add Item to Bill</button>
+    </div>
+
+    <!-- PRINTABLE INVOICE -->
+    <div id="printableArea" style="margin-top: 20px;">
+      <h2>INVOICE / BILL</h2>
+      <p><strong>Customer:</strong> <span id="lblCustName">-</span> | <strong>Phone:</strong> <span id="lblCustPhone">-</span></p>
+      <p><strong>Date:</strong> <span id="lblDate"></span></p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody id="billItems"></tbody>
+      </table>
+
+      <div class="total-box">
+        Grand Total: ₹<span id="grandTotal">0.00</span>
+      </div>
+    </div>
+
+    <div class="no-print" style="margin-top: 20px;">
+      <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let heads = ["General", "Pharmacy", "Surgical"];
+  let billItems = [];
+
+  function init() {
+    document.getElementById('lblDate').innerText = new Date().toLocaleDateString();
+    renderHeadOptions();
+  }
+
+  function showSection(id) {
+    document.getElementById('billing').style.display = (id === 'billing') ? 'block' : 'none';
+    document.getElementById('new-head').style.display = (id === 'new-head') ? 'block' : 'none';
+  }
+
+  function renderHeadOptions() {
+    const select = document.getElementById('billHeadSelect');
+    const list = document.getElementById('headList');
+    select.innerHTML = '';
+    list.innerHTML = '';
+    heads.forEach(h => {
+      select.innerHTML += `<option value="${h}">${h}</option>`;
+      list.innerHTML += `<li>${h}</li>`;
+    });
+  }
+
+  function addHead() {
+    const name = document.getElementById('headName').value.trim();
+    if(name) {
+      heads.push(name);
+      renderHeadOptions();
+      document.getElementById('headName').value = '';
+      alert('New Head Added Successfully!');
+    }
+  }
+
+  function addItemToBill() {
+    const name = document.getElementById('itemName').value.trim();
+    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
+    const qty = parseInt(document.getElementById('itemQty').value) || 1;
+    
+    document.getElementById('lblCustName').innerText = document.getElementById('custName').value || 'N/A';
+    document.getElementById('lblCustPhone').innerText = document.getElementById('custPhone').value || 'N/A';
+
+    if(name && price > 0) {
+      const total = price * qty;
+      billItems.push({ name, price, qty, total });
+      renderBill();
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemPrice').value = '0';
+      document.getElementById('itemQty').value = '1';
+    } else {
+      alert('Please enter valid item details.');
+    }
+  }
+
+  function renderBill() {
+    const tbody = document.getElementById('billItems');
+    tbody.innerHTML = '';
+    let grandTotal = 0;
+
+    billItems.forEach(item => {
+      grandTotal += item.total;
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.name}</td>
+          <td>₹${item.price.toFixed(2)}</td>
+          <td>${item.qty}</td>
+          <td>₹${item.total.toFixed(2)}</td>
+        </tr>
+      `;
+    });
+
+    document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
+  }
+
+  init();
+</script>
+</body>
+</html>
