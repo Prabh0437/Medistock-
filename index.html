@@ -1,347 +1,451 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MediStock — Medical Store Manager</title>
-<style>
-:root{--bg:#f5f7f4;--card:#fff;--text:#18322f;--muted:#6c7b78;--accent:#177e78;--line:#dfe7e3;--danger:#c65353;--warn:#b98520}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--text)}
-header{position:sticky;top:0;z-index:5;background:#173f3a;color:white;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}
-.brand{font-size:21px;font-weight:800}.sub{font-size:11px;opacity:.7}
-nav{display:flex;gap:7px;overflow:auto;padding:10px;background:#fff;border-bottom:1px solid var(--line)}
-nav button{white-space:nowrap;border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:10px;color:var(--text)}nav button.active{background:#dff1ed;border-color:#9accc3;font-weight:700}
-main{max-width:1100px;margin:auto;padding:18px}.page{display:none}.page.active{display:block}
-h1{margin:4px 0 4px;font-size:28px}.muted{color:var(--muted)}
-.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}.metric{font-size:28px;font-weight:800;margin-top:8px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}.btn{border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700}.btn.secondary{background:#e8efed;color:var(--text)}.btn.danger{background:var(--danger)}
-.tablewrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.table{width:100%;border-collapse:collapse;min-width:760px}.table th,.table td{text-align:left;padding:11px;border-bottom:1px solid var(--line);font-size:14px}.table th{background:#f1f5f3}
-.formgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}.field input,.field select{width:100%;padding:10px;border:1px solid #cfdad6;border-radius:9px;background:white}
-.formcard{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:15px}
-.alert{padding:12px;border-radius:10px;margin:8px 0;background:#fff5dc}.dangerbox{background:#ffe9e9}
-.empty{padding:28px;text-align:center;color:var(--muted)}
-@media(max-width:760px){.grid{grid-template-columns:repeat(2,1fr)}.formgrid{grid-template-columns:1fr 1fr}main{padding:12px}.metric{font-size:24px}}
-@media(max-width:470px){.formgrid{grid-template-columns:1fr}.grid{gap:8px}.card{padding:12px}}
-</style>
-</head>
-<body>
-<header><div><div class="brand">💊 MediStock</div><div class="sub">Medical Store Stock Management • V1</div></div><button class="btn secondary" onclick="backup()">Backup</button></header>
-<nav id="nav"></nav>
-<main>
-<section id="dashboard" class="page active">
-<h1>Dashboard</h1><div class="muted">Your store's stock pulse</div>
-<div class="grid" id="metrics"></div>
-<div class="actions"><button class="btn" onclick="showPage('medicines')">+ Add Medicine</button><button class="btn secondary" onclick="showPage('grn')">+ Purchase / GRN</button></div>
-<div class="formcard"><h3>Attention</h3><div id="attention"></div></div>
-</section>
-
-<section id="medicines" class="page">
-<h1>Medicine Master</h1><div class="muted">Maintain the master list. Batch and expiry are entered through GRN.</div>
-<div class="formcard"><div class="formgrid">
-<div class="field"><label>Medicine Name *</label><input id="m_name"></div>
-<div class="field"><label>Salt / Composition</label><input id="m_salt"></div>
-<div class="field"><label>Company</label><input id="m_company"></div>
-<div class="field"><label>Type</label><select id="m_type"><option>Tablet</option><option>Capsule</option><option>Syrup</option><option>Injection</option><option>Cream</option><option>Ointment</option><option>Drops</option><option>Sachet</option><option>Other</option></select></div>
-<div class="field"><label>Pack / Unit</label><input id="m_pack" placeholder="e.g. 10 tablets / 100 ml"></div>
-<div class="field"><label>HSN</label><input id="m_hsn"></div>
-<div class="field"><label>GST %</label><input id="m_gst" type="number" step="0.01" value="0"></div>
-<div class="field"><label>Minimum Stock</label><input id="m_min" type="number" value="0"></div>
-<div class="field"><label>Rack / Location</label><input id="m_rack"></div>
-</div><div class="actions"><button class="btn" onclick="addMedicine()">Save Medicine</button></div></div>
-<div class="tablewrap"><table class="table"><thead><tr><th>Name</th><th>Salt</th><th>Company</th><th>Type</th><th>Pack</th><th>Min Stock</th><th>Action</th></tr></thead><tbody id="medicineRows"></tbody></table></div>
-</section>
-
-<section id="suppliers" class="page">
-<h1>Supplier Master</h1><div class="muted">Add distributors / suppliers.</div>
-<div class="formcard"><div class="formgrid">
-<div class="field"><label>Supplier Name *</label><input id="s_name"></div><div class="field"><label>Phone</label><input id="s_phone"></div><div class="field"><label>GSTIN</label><input id="s_gst"></div><div class="field"><label>Address</label><input id="s_address"></div>
-</div><div class="actions"><button class="btn" onclick="addSupplier()">Save Supplier</button></div></div>
-<div class="tablewrap"><table class="table"><thead><tr><th>Supplier</th><th>Phone</th><th>GSTIN</th><th>Address</th><th>Action</th></tr></thead><tbody id="supplierRows"></tbody></table></div>
-</section>
-
-<section id="grn" class="page">
-<h1>GRN / Purchase Entry</h1><div class="muted">Each purchase creates a batch and increases stock.</div>
-<div class="formcard"><div class="formgrid">
-<div class="field"><label>Bill No *</label><input id="g_bill"></div><div class="field"><label>Bill Date</label><input id="g_date" type="date"></div>
-<div class="field"><label>Supplier</label><select id="g_supplier"></select></div><div class="field"><label>Medicine *</label><select id="g_med"></select></div>
-<div class="field"><label>Batch No *</label><input id="g_batch"></div><div class="field"><label>Expiry *</label><input id="g_expiry" type="month"></div>
-<div class="field"><label>Quantity *</label><input id="g_qty" type="number" min="0"></div><div class="field"><label>Free Qty</label><input id="g_free" type="number" min="0" value="0"></div>
-<div class="field"><label>Purchase Rate</label><input id="g_rate" type="number" step="0.01" value="0"></div><div class="field"><label>MRP</label><input id="g_mrp" type="number" step="0.01" value="0"></div>
-<div class="field"><label>GST %</label><input id="g_gst" type="number" step="0.01" value="0"></div>
-</div><div class="actions"><button class="btn" onclick="saveGRN()">Save GRN & Add Stock</button></div></div>
-</section>
-
-<section id="stock" class="page">
-<h1>Batch-wise Stock</h1><div class="muted">Live quantity by medicine and batch.</div>
-<div class="tablewrap"><table class="table"><thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>MRP</th><th>Purchase Rate</th><th>Supplier</th></tr></thead><tbody id="stockRows"></tbody></table></div>
-</section>
-
-<section id="ledger" class="page">
-<h1>Stock Ledger</h1><div class="muted">Every stock movement is recorded.</div>
-<div class="tablewrap"><table class="table"><thead><tr><th>Date/Time</th><th>Medicine</th><th>Batch</th><th>Type</th><th>In</th><th>Out</th><th>Balance</th><th>Reference</th></tr></thead><tbody id="ledgerRows"></tbody></table></div>
-</section>
-
-<section id="expiry" class="page">
-<h1>Expiry Management</h1><div class="muted">Nearest-expiry batches appear first.</div>
-<div class="tablewrap"><table class="table"><thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>Qty</th><th>Status</th></tr></thead><tbody id="expiryRows"></tbody></table></div>
-</section>
-
-<section id="sales" class="page">
-<h1>Sales</h1><div class="muted">V1: simple batch sale. Stock decreases and ledger is updated.</div>
-<div class="formcard"><div class="formgrid">
-<div class="field"><label>Bill No *</label><input id="sale_bill"></div><div class="field"><label>Medicine *</label><select id="sale_med" onchange="fillSaleBatches()"></select></div>
-<div class="field"><label>Batch *</label><select id="sale_batch"></select></div><div class="field"><label>Quantity *</label><input id="sale_qty" type="number" min="1"></div>
-<div class="field"><label>Sale Rate / Unit</label><input id="sale_rate" type="number" step="0.01" value="0"></div>
-</div><div class="actions"><button class="btn" onclick="saveSale()">Save Sale</button></div></div>
-</section>
-
-<section id="reports" class="page">
-<h1>Reports</h1><div class="muted">Quick stock summary.</div><div id="reportContent"></div>
-</section>
-</main>
-<script>
-const KEY='medistock_v1';
-let db=JSON.parse(localStorage.getItem(KEY)||'{"medicines":[],"suppliers":[],"batches":[],"ledger":[],"sales":[]}');
-const pages=[['dashboard','🏠 Dashboard'],['medicines','💊 Medicine Master'],['suppliers','🏢 Suppliers'],['grn','📦 GRN / Purchase'],['stock','🔢 Batch Stock'],['ledger','📒 Stock Ledger'],['sales','🧾 Sales'],['expiry','⏰ Expiry'],['reports','📊 Reports']];
-function save(){localStorage.setItem(KEY,JSON.stringify(db));render()}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-function showPage(id){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===id));render()}
-function nav(){document.getElementById('nav').innerHTML=pages.map((p,i)=>`<button data-page="${p[0]}" class="${i===0?'active':''}" onclick="showPage('${p[0]}')">${p[1]}</button>`).join('')}
-function addMedicine(){let name=m_name.value.trim();if(!name)return alert('Medicine name is required.');db.medicines.push({id:crypto.randomUUID(),name,salt:m_salt.value,company:m_company.value,type:m_type.value,pack:m_pack.value,hsn:m_hsn.value,gst:+m_gst.value||0,min:+m_min.value||0,rack:m_rack.value});['m_name','m_salt','m_company','m_pack','m_hsn','m_rack'].forEach(x=>document.getElementById(x).value='');save();alert('Medicine saved.')}
-function addSupplier(){let name=s_name.value.trim();if(!name)return alert('Supplier name is required.');db.suppliers.push({id:crypto.randomUUID(),name,phone:s_phone.value,gst:s_gst.value,address:s_address.value});s_name.value=s_phone.value=s_gst.value=s_address.value='';save();alert('Supplier saved.')}
-function saveGRN(){let med=g_med.value,batch=g_batch.value.trim(),qty=+g_qty.value||0;if(!med||!batch||qty<=0)return alert('Medicine, batch and quantity are required.');let total=qty+(+g_free.value||0), existing=db.batches.find(b=>b.medId===med&&b.batch===batch&&b.expiry===g_expiry.value);if(existing){existing.qty+=total;existing.mrp=+g_mrp.value||existing.mrp;existing.rate=+g_rate.value||existing.rate}else{db.batches.push({id:crypto.randomUUID(),medId:med,batch,expiry:g_expiry.value,qty:total,mrp:+g_mrp.value||0,rate:+g_rate.value||0,supplierId:g_supplier.value,bill:g_bill.value,date:g_date.value})}let m=db.medicines.find(x=>x.id===med);db.ledger.unshift({time:new Date().toLocaleString(),medId:med,batch,type:'PURCHASE',in:total,out:0,balance:stockQty(med,batch),ref:g_bill.value});save();alert('GRN saved and stock added.')}
-function stockQty(med,batch){let b=db.batches.find(x=>x.medId===med&&x.batch===batch);return b?b.qty:0}
-function saveSale(){let med=sale_med.value,batch=sale_batch.value,qty=+sale_qty.value||0,b=db.batches.find(x=>x.id===batch);if(!b||qty<=0)return alert('Select batch and quantity.');if(qty>b.qty)return alert('Not enough stock in this batch.');b.qty-=qty;db.sales.push({time:new Date().toLocaleString(),bill:sale_bill.value,medId:med,batchId:batch,qty,rate:+sale_rate.value||b.mrp});db.ledger.unshift({time:new Date().toLocaleString(),medId:med,batch:b.batch,type:'SALE',in:0,out:qty,balance:b.qty,ref:sale_bill.value});save();alert('Sale saved and stock reduced.')}
-function render(){medicineRows.innerHTML=db.medicines.map(m=>`<tr><td>${esc(m.name)}</td><td>${esc(m.salt)}</td><td>${esc(m.company)}</td><td>${esc(m.type)}</td><td>${esc(m.pack)}</td><td>${m.min}</td><td><button class="btn danger" onclick="delMed('${m.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="7" class="empty">No medicines yet.</td></tr>';
-supplierRows.innerHTML=db.suppliers.map(s=>`<tr><td>${esc(s.name)}</td><td>${esc(s.phone)}</td><td>${esc(s.gst)}</td><td>${esc(s.address)}</td><td><button class="btn danger" onclick="delSup('${s.id}')">Delete</button></td></tr>`).join('')||'<tr><td colspan="5" class="empty">No suppliers yet.</td></tr>';
-g_med.innerHTML='<option value="">Select medicine</option>'+db.medicines.map(m=>`<option value="${m.id}">${esc(m.name)} — ${esc(m.type)}</option>`).join('');sale_med.innerHTML='<option value="">Select medicine</option>'+db.medicines.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');g_supplier.innerHTML='<option value="">Select supplier</option>'+db.suppliers.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');
-stockRows.innerHTML=db.batches.map(b=>{let m=db.medicines.find(x=>x.id===b.medId),s=db.suppliers.find(x=>x.id===b.supplierId);return `<tr><td>${esc(m?.name)}</td><td>${esc(b.batch)}</td><td>${esc(b.expiry)}</td><td>${b.qty}</td><td>₹${b.mrp.toFixed(2)}</td><td>₹${b.rate.toFixed(2)}</td><td>${esc(s?.name||'')}</td></tr>`}).join('')||'<tr><td colspan="7" class="empty">No stock yet. Add a GRN.</td></tr>';
-ledgerRows.innerHTML=db.ledger.map(l=>{let m=db.medicines.find(x=>x.id===l.medId);return `<tr><td>${esc(l.time)}</td><td>${esc(m?.name)}</td><td>${esc(l.batch)}</td><td>${l.type}</td><td>${l.in}</td><td>${l.out}</td><td>${l.balance}</td><td>${esc(l.ref)}</td></tr>`}).join('')||'<tr><td colspan="8" class="empty">No movements yet.</td></tr>';
-let now=new Date(),soon=new Date(now);soon.setDate(soon.getDate()+90);expiryRows.innerHTML=db.batches.filter(b=>b.qty>0).sort((a,b)=>a.expiry.localeCompare(b.expiry)).map(b=>{let m=db.medicines.find(x=>x.id===b.medId),d=new Date(b.expiry+'-01'),status=d<now?'EXPIRED':d<soon?'NEAR EXPIRY':'OK';return `<tr><td>${esc(m?.name)}</td><td>${esc(b.batch)}</td><td>${esc(b.expiry)}</td><td>${b.qty}</td><td>${status}</td></tr>`}).join('')||'<tr><td colspan="5" class="empty">No active batches.</td></tr>';
-fillSaleBatches();dashboard();report();
-}
-function fillSaleBatches(){let med=sale_med.value;sale_batch.innerHTML='<option value="">Select batch</option>'+db.batches.filter(b=>b.medId===med&&b.qty>0).sort((a,b)=>a.expiry.localeCompare(b.expiry)).map(b=>`<option value="${b.id}">${esc(b.batch)} • Exp ${esc(b.expiry)} • Qty ${b.qty}</option>`).join('')}
-function dashboard(){let total=db.medicines.length,qty=db.batches.reduce((a,b)=>a+b.qty,0),low=db.medicines.filter(m=>stockForMed(m.id)<=m.min).length,near=db.batches.filter(b=>b.qty>0&&new Date(b.expiry+'-01')<new Date(Date.now()+90*864e5)).length;metrics.innerHTML=[['💊','Medicines',total],['📦','Units in Stock',qty],['⚠️','Low Stock',low],['⏰','Near/Expired',near]].map(x=>`<div class="card"><div>${x[0]} ${x[1]}</div><div class="metric">${x[2]}</div></div>`).join('');let items=db.medicines.filter(m=>stockForMed(m.id)<=m.min).slice(0,8);attention.innerHTML=items.length?items.map(m=>`<div class="alert">${esc(m.name)} — <b>${stockForMed(m.id)}</b> units (minimum ${m.min})</div>`).join(''):'<div class="muted">No low-stock items right now.</div>'}
-function stockForMed(id){return db.batches.filter(b=>b.medId===id).reduce((a,b)=>a+b.qty,0)}
-function report(){let value=db.batches.reduce((a,b)=>a+b.qty*b.rate,0);reportContent.innerHTML=`<div class="grid"><div class="card">Stock value<div class="metric">₹${value.toFixed(2)}</div></div><div class="card">Purchase entries<div class="metric">${db.ledger.filter(x=>x.type==='PURCHASE').length}</div></div><div class="card">Sales entries<div class="metric">${db.sales.length}</div></div><div class="card">Batches<div class="metric">${db.batches.length}</div></div></div>`}
-function delMed(id){if(confirm('Delete this medicine? Existing stock will remain but medicine master will be removed.')){db.medicines=db.medicines.filter(x=>x.id!==id);save()}}
-function delSup(id){if(confirm('Delete supplier?')){db.suppliers=db.suppliers.filter(x=>x.id!==id);save()}}
-function backup(){let blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='medistock-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
-nav();document.getElementById('g_date').value=new Date().toISOString().slice(0,10);render();
-</script>
-</body>
-</html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediStock - Billing & Management</title>
+  <title>MediStock ERP - Enterprise Pharmacy System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary: #2563eb;
-      --secondary: #1e293b;
-      --bg: #f8fafc;
-      --white: #ffffff;
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #0ea5e9;
+      --accent-hover: #0284c7;
+      --success: #10b981;
+      --danger: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
     }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: var(--bg); color: #333; }
-    header { background: var(--secondary); color: var(--white); padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-    .nav-btn { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 5px; }
-    .container { padding: 20px; max-width: 1100px; margin: 0 auto; }
-    .card { background: var(--white); padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
-    h2 { color: var(--secondary); margin-top: 0; }
-    .form-group { margin-bottom: 15px; }
-    label { display: block; font-weight: bold; margin-bottom: 5px; }
-    input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-    th { background: #f1f5f9; }
-    .total-box { text-align: right; margin-top: 15px; font-size: 1.2rem; font-weight: bold; }
-    .print-btn { background: #16a34a; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+    * { box-sizing: border-box; font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
+    body { background-color: var(--bg-dark); color: var(--text-main); min-height: 100vh; }
+    
+    /* LOGIN SCREEN */
+    #login-overlay { position: fixed; inset: 0; background: #020617; display: flex; align-items: center; justify-content: center; z-index: 999; }
+    .login-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 30px; width: 340px; text-align: center; }
+    .login-card h2 { margin-bottom: 8px; font-size: 1.5rem; }
+    .login-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
+    
+    /* MAIN LAYOUT */
+    #app-container { display: none; min-height: 100vh; flex-direction: column; }
+    header { background: var(--card-bg); border-bottom: 1px solid var(--border); padding: 15px 25px; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+    nav button { background: transparent; border: none; color: var(--text-muted); padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: 0.2s; }
+    nav button:hover, nav button.active { background: var(--border); color: var(--text-main); }
+    
+    .container { padding: 25px; max-width: 1200px; margin: 0 auto; width: 100%; }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    h3 { margin-bottom: 15px; font-size: 1.1rem; color: var(--accent); }
+    
+    /* FORM ELEMENTS */
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; }
+    @media (max-width: 768px) { .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } }
+    
+    .form-group { margin-bottom: 12px; }
+    label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px; font-weight: 500; }
+    input, select { width: 100%; background: var(--bg-dark); border: 1px solid var(--border); color: var(--text-main); padding: 10px; border-radius: 6px; font-size: 0.9rem; }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    
+    .btn { background: var(--accent); color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .btn:hover { background: var(--accent-hover); }
+    .btn-danger { background: var(--danger); }
+    .btn-success { background: var(--success); }
+    
+    /* TABLE */
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.85rem; }
+    th, td { border: 1px solid var(--border); padding: 10px; text-align: left; }
+    th { background: rgba(0,0,0,0.2); color: var(--text-muted); font-weight: 600; }
+    
+    /* PRINT STYLES */
     @media print {
       body * { visibility: hidden; }
-      #printableArea, #printableArea * { visibility: visible; }
-      #printableArea { position: absolute; left: 0; top: 0; width: 100%; }
-      .no-print { display: none; }
+      #printable-bill, #printable-bill * { visibility: visible; }
+      #printable-bill { position: absolute; left: 0; top: 0; width: 100%; color: black; background: white; padding: 20px; }
+      #printable-bill th, #printable-bill td { border-color: #ccc; }
     }
   </style>
 </head>
 <body>
 
-<header class="no-print">
-  <h1>MediStock</h1>
-  <div>
-    <button class="nav-btn" onclick="showSection('billing')">Billing</button>
-    <button class="nav-btn" onclick="showSection('new-head')">Add New Head</button>
-  </div>
-</header>
-
-<div class="container">
-
-  <!-- NEW HEAD SECTION -->
-  <div id="new-head" class="card no-print" style="display: none;">
-    <h2>Add New Head / Category</h2>
-    <div class="grid">
+  <!-- LOGIN OVERLAY -->
+  <div id="login-overlay">
+    <div class="login-card">
+      <h2>MediStock ERP</h2>
+      <p>Enter Security PIN to Access</p>
       <div class="form-group">
-        <label>Head Name</label>
-        <input type="text" id="headName" placeholder="e.g., Antibiotics, Surgical">
+        <input type="password" id="pinInput" placeholder="Default PIN: 1234" style="text-align: center; font-size: 1.2rem;">
       </div>
-      <div class="form-group">
-        <label>Description</label>
-        <input type="text" id="headDesc" placeholder="Head description">
-      </div>
-    </div>
-    <button class="nav-btn" onclick="addHead()">Save Head</button>
-    <h3 style="margin-top: 20px;">Existing Heads</h3>
-    <ul id="headList"></ul>
-  </div>
-
-  <!-- BILLING SECTION -->
-  <div id="billing" class="card">
-    <div class="no-print">
-      <h2>New Bill Generation</h2>
-      <div class="grid">
-        <div class="form-group">
-          <label>Patient/Customer Name</label>
-          <input type="text" id="custName" placeholder="Enter Name">
-        </div>
-        <div class="form-group">
-          <label>Contact Number</label>
-          <input type="text" id="custPhone" placeholder="Enter Phone">
-        </div>
-        <div class="form-group">
-          <label>Select Head/Category</label>
-          <select id="billHeadSelect"></select>
-        </div>
-      </div>
-
-      <hr>
-
-      <h3>Add Item</h3>
-      <div class="grid">
-        <div class="form-group">
-          <label>Medicine / Item Name</label>
-          <input type="text" id="itemName" placeholder="Medicine Name">
-        </div>
-        <div class="form-group">
-          <label>Price (per unit)</label>
-          <input type="number" id="itemPrice" value="0">
-        </div>
-        <div class="form-group">
-          <label>Quantity</label>
-          <input type="number" id="itemQty" value="1">
-        </div>
-      </div>
-      <button class="nav-btn" onclick="addItemToBill()">Add Item to Bill</button>
-    </div>
-
-    <!-- PRINTABLE INVOICE -->
-    <div id="printableArea" style="margin-top: 20px;">
-      <h2>INVOICE / BILL</h2>
-      <p><strong>Customer:</strong> <span id="lblCustName">-</span> | <strong>Phone:</strong> <span id="lblCustPhone">-</span></p>
-      <p><strong>Date:</strong> <span id="lblDate"></span></p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Price</th>
-            <th>Qty</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody id="billItems"></tbody>
-      </table>
-
-      <div class="total-box">
-        Grand Total: ₹<span id="grandTotal">0.00</span>
-      </div>
-    </div>
-
-    <div class="no-print" style="margin-top: 20px;">
-      <button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+      <button class="btn" onclick="login()" style="width: 100%;">Unlock Dashboard</button>
     </div>
   </div>
 
-</div>
+  <!-- MAIN APP CONTAINER -->
+  <div id="app-container">
+    <header>
+      <div class="logo">💊 MediStock Enterprise</div>
+      <nav>
+        <button class="active" onclick="switchTab('grn-tab', this)">GRN Entry</button>
+        <button onclick="switchTab('billing-tab', this)">Billing</button>
+        <button onclick="switchTab('cn-tab', this)">Credit Note (CN)</button>
+        <button onclick="switchTab('head-tab', this)">Heads Master</button>
+        <button onclick="switchTab('stock-tab', this)">Current Stock</button>
+        <button class="btn-danger" onclick="logout()" style="margin-left: 15px; padding: 6px 12px;">Lock</button>
+      </nav>
+    </header>
 
-<script>
-  let heads = ["General", "Pharmacy", "Surgical"];
-  let billItems = [];
+    <div class="container">
 
-  function init() {
-    document.getElementById('lblDate').innerText = new Date().toLocaleDateString();
-    renderHeadOptions();
-  }
+      <!-- 1. GRN ENTRY SECTION -->
+      <div id="grn-tab" class="tab-content">
+        <div class="card">
+          <h3>Goods Receipt Note (GRN) - Inward Stock Entry</h3>
+          <div class="grid-4">
+            <div class="form-group">
+              <label>Head / Category</label>
+              <select id="grnHeadSelect"></select>
+            </div>
+            <div class="form-group">
+              <label>Medicine Name</label>
+              <input type="text" id="grnMedName" placeholder="e.g. Linezolid 600mg">
+            </div>
+            <div class="form-group">
+              <label>Batch Number</label>
+              <input type="text" id="grnBatch" placeholder="e.g. B12345">
+            </div>
+            <div class="form-group">
+              <label>Expiry Date</label>
+              <input type="date" id="grnExpiry">
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Quantity (Units)</label>
+              <input type="number" id="grnQty" value="100">
+            </div>
+            <div class="form-group">
+              <label>Purchase Price (₹/Unit)</label>
+              <input type="number" id="grnPurchasePrice" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Selling MRP (₹/Unit)</label>
+              <input type="number" id="grnSellPrice" placeholder="0.00">
+            </div>
+          </div>
+          <button class="btn btn-success" onclick="processGRN()">Save GRN & Update Inventory</button>
+        </div>
+      </div>
 
-  function showSection(id) {
-    document.getElementById('billing').style.display = (id === 'billing') ? 'block' : 'none';
-    document.getElementById('new-head').style.display = (id === 'new-head') ? 'block' : 'none';
-  }
+      <!-- 2. BILLING SECTION -->
+      <div id="billing-tab" class="tab-content" style="display:none;">
+        <div class="card">
+          <h3>POS Auto-Billing System</h3>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Patient/Customer Name</label>
+              <input type="text" id="billCustName" placeholder="Patient Name">
+            </div>
+            <div class="form-group">
+              <label>Phone Number</label>
+              <input type="text" id="billCustPhone" placeholder="Mobile">
+            </div>
+            <div class="form-group">
+              <label>Select Medicine Batch</label>
+              <select id="billItemSelect" onchange="autoFillPrice()"></select>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Available Stock</label>
+              <input type="text" id="billAvailStock" disabled placeholder="0">
+            </div>
+            <div class="form-group">
+              <label>Unit Rate (₹)</label>
+              <input type="number" id="billRate" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Quantity to Sell</label>
+              <input type="number" id="billQty" value="1">
+            </div>
+          </div>
+          <button class="btn" onclick="addBillItem()">Add Item to Invoice</button>
+        </div>
 
-  function renderHeadOptions() {
-    const select = document.getElementById('billHeadSelect');
-    const list = document.getElementById('headList');
-    select.innerHTML = '';
-    list.innerHTML = '';
-    heads.forEach(h => {
-      select.innerHTML += `<option value="${h}">${h}</option>`;
-      list.innerHTML += `<li>${h}</li>`;
-    });
-  }
+        <div class="card" id="printable-bill">
+          <h3>Invoice Preview</h3>
+          <p><strong>Customer:</strong> <span id="lblCust">-</span> | <strong>Date:</strong> <span id="lblBillDate"></span></p>
+          <table>
+            <thead>
+              <tr>
+                <th>Medicine</th>
+                <th>Batch</th>
+                <th>Rate</th>
+                <th>Qty</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="billTableBody"></tbody>
+          </table>
+          <h2 style="text-align: right; margin-top: 15px; color: var(--accent);">Total: ₹<span id="billGrandTotal">0.00</span></h2>
+          <button class="btn btn-success" onclick="finalizeBill()" style="margin-top: 15px;">Finalize & Print Invoice</button>
+        </div>
+      </div>
 
-  function addHead() {
-    const name = document.getElementById('headName').value.trim();
-    if(name) {
-      heads.push(name);
-      renderHeadOptions();
-      document.getElementById('headName').value = '';
-      alert('New Head Added Successfully!');
+      <!-- 3. CREDIT NOTE (CN) SECTION -->
+      <div id="cn-tab" class="tab-content" style="display:none;">
+        <div class="card">
+          <h3>Credit Note (Damage / Return Entry)</h3>
+          <div class="grid-3">
+            <div class="form-group">
+              <label>Select Item Batch</label>
+              <select id="cnItemSelect"></select>
+            </div>
+            <div class="form-group">
+              <label>Return Quantity</label>
+              <input type="number" id="cnQty" value="1">
+            </div>
+            <div class="form-group">
+              <label>Reason for Return</label>
+              <input type="text" id="cnReason" placeholder="Expired / Damaged">
+            </div>
+          </div>
+          <button class="btn btn-danger" onclick="processCN()">Issue Credit Note & Deduct Stock</button>
+        </div>
+      </div>
+
+      <!-- 4. HEADS MASTER -->
+      <div id="head-tab" class="tab-content" style="display:none;">
+        <div class="card">
+          <h3>Department / Category Heads Master</h3>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>Head Title</label>
+              <input type="text" id="newHeadTitle" placeholder="e.g. Antibiotics">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" id="newHeadDesc" placeholder="Category details">
+            </div>
+          </div>
+          <button class="btn" onclick="addHead()">Create Head</button>
+          <table style="margin-top: 20px;">
+            <thead><tr><th>Head ID</th><th>Title</th><th>Description</th></tr></thead>
+            <tbody id="headListBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. CURRENT STOCK -->
+      <div id="stock-tab" class="tab-content" style="display:none;">
+        <div class="card">
+          <h3>Real-Time Pharmacy Stock Ledger</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Head</th>
+                <th>Medicine</th>
+                <th>Batch</th>
+                <th>Expiry</th>
+                <th>Stock Left</th>
+                <th>MRP (₹)</th>
+              </tr>
+            </thead>
+            <tbody id="stockTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // INITIAL DATABASE SETUP
+    let db = {
+      pin: "1234",
+      heads: ["Antibiotics", "Analgesics", "Surgicals", "General"],
+      inventory: [], // { head, name, batch, expiry, qty, purchasePrice, sellPrice }
+      activeBill: []
+    };
+
+    function loadDB() {
+      const saved = localStorage.getItem('medistock_db');
+      if (saved) db = JSON.parse(saved);
+      refreshAll();
     }
-  }
 
-  function addItemToBill() {
-    const name = document.getElementById('itemName').value.trim();
-    const price = parseFloat(document.getElementById('itemPrice').value) || 0;
-    const qty = parseInt(document.getElementById('itemQty').value) || 1;
-    
-    document.getElementById('lblCustName').innerText = document.getElementById('custName').value || 'N/A';
-    document.getElementById('lblCustPhone').innerText = document.getElementById('custPhone').value || 'N/A';
+    function saveDB() {
+      localStorage.setItem('medistock_db', JSON.stringify(db));
+      refreshAll();
+    }
 
-    if(name && price > 0) {
-      const total = price * qty;
-      billItems.push({ name, price, qty, total });
+    function login() {
+      const val = document.getElementById('pinInput').value;
+      if (val === db.pin) {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('app-container').style.display = 'flex';
+      } else {
+        alert('Invalid Security PIN!');
+      }
+    }
+
+    function logout() {
+      document.getElementById('login-overlay').style.display = 'flex';
+      document.getElementById('app-container').style.display = 'none';
+      document.getElementById('pinInput').value = '';
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).style.display = 'block';
+      if(btn) btn.classList.add('active');
+    }
+
+    // REFRESH UI DROPDOWNS & TABLES
+    function refreshAll() {
+      // Refresh Head Options
+      const grnHeadSel = document.getElementById('grnHeadSelect');
+      grnHeadSel.innerHTML = '';
+      db.heads.forEach(h => grnHeadSel.innerHTML += `<option value="${h}">${h}</option>`);
+
+      // Refresh Head Table
+      const headBody = document.getElementById('headListBody');
+      headBody.innerHTML = '';
+      db.heads.forEach((h, idx) => headBody.innerHTML += `<tr><td>${idx+1}</td><td>${h}</td><td>Active Category</td></tr>`);
+
+      // Refresh Stock Table
+      const stockBody = document.getElementById('stockTableBody');
+      stockBody.innerHTML = '';
+      db.inventory.forEach(i => {
+        stockBody.innerHTML += `<tr>
+          <td>${i.head}</td><td><strong>${i.name}</strong></td><td>${i.batch}</td>
+          <td>${i.expiry}</td><td><span style="color:${i.qty < 10 ? 'red':'inherit'}">${i.qty}</span></td><td>₹${i.sellPrice}</td>
+        </tr>`;
+      });
+
+      // Refresh Billing & CN Select Dropdowns
+      const billSel = document.getElementById('billItemSelect');
+      const cnSel = document.getElementById('cnItemSelect');
+      billSel.innerHTML = '<option value="">-- Select Medicine Batch --</option>';
+      cnSel.innerHTML = '<option value="">-- Select Medicine Batch --</option>';
+
+      db.inventory.forEach((item, index) => {
+        if(item.qty > 0) {
+          billSel.innerHTML += `<option value="${index}">${item.name} (Batch: ${item.batch} | Stock: ${item.qty})</option>`;
+        }
+        cnSel.innerHTML += `<option value="${index}">${item.name} (Batch: ${item.batch})</option>`;
+      });
+    }
+
+    // PROCESS GRN
+    function processGRN() {
+      const name = document.getElementById('grnMedName').value;
+      const batch = document.getElementById('grnBatch').value;
+      const qty = parseInt(document.getElementById('grnQty').value);
+      const sellPrice = parseFloat(document.getElementById('grnSellPrice').value);
+
+      if(!name || !batch || !qty || !sellPrice) return alert('Fill all mandatory GRN fields!');
+
+      db.inventory.push({
+        head: document.getElementById('grnHeadSelect').value,
+        name, batch,
+        expiry: document.getElementById('grnExpiry').value,
+        qty,
+        purchasePrice: parseFloat(document.getElementById('grnPurchasePrice').value) || 0,
+        sellPrice
+      });
+
+      saveDB();
+      alert('GRN Processed: Stock Successfully Updated!');
+      document.getElementById('grnMedName').value = '';
+      document.getElementById('grnBatch').value = '';
+    }
+
+    // BILLING AUTO-FILL & ADD
+    function autoFillPrice() {
+      const idx = document.getElementById('billItemSelect').value;
+      if(idx !== "") {
+        const item = db.inventory[idx];
+        document.getElementById('billAvailStock').value = item.qty;
+        document.getElementById('billRate').value = item.sellPrice;
+      }
+    }
+
+    function addBillItem() {
+      const idx = document.getElementById('billItemSelect').value;
+      const qty = parseInt(document.getElementById('billQty').value);
+      const rate = parseFloat(document.getElementById('billRate').value);
+
+      if(idx === "" || !qty || !rate) return alert('Select medicine and valid details!');
+      const item = db.inventory[idx];
+
+      if(qty > item.qty) return alert('Requested quantity exceeds current stock!');
+
+      db.activeBill.push({
+        invIndex: idx,
+        name: item.name,
+        batch: item.batch,
+        rate: rate,
+        qty: qty,
+        total: rate * qty
+      });
+
       renderBill();
-      document.getElementById('itemName').value = '';
-      document.getElementById('itemPrice').value = '0';
-      document.getElementById('itemQty').value = '1';
-    } else {
-      alert('Please enter valid item details.');
     }
-  }
 
-  function renderBill() {
-    const tbody = document.getElementById('billItems');
-    tbody.innerHTML = '';
-    let grandTotal = 0;
+    function renderBill() {
+      document.getElementById('lblCust').innerText = document.getElementById('billCustName').value || 'Walk-in Customer';
+      document.getElementById('lblBillDate').innerText = new Date().toLocaleDateString();
+      const tbody = document.getElementById('billTableBody');
+      tbody.innerHTML = '';
+      let grandTotal = 0;
 
-    billItems.forEach(item => {
-      grandTotal += item.total;
-      tbody.innerHTML += `
-        <tr>
-          <td>${item.name}</td>
-          <td>₹${item.price.toFixed(2)}</td>
-          <td>${item.qty}</td>
-          <td>₹${item.total.toFixed(2)}</td>
-        </tr>
-      `;
-    });
+      db.activeBill.forEach(i => {
+        grandTotal += i.total;
+        tbody.innerHTML += `<tr><td>${i.name}</td><td>${i.batch}</td><td>₹${i.rate}</td><td>${i.qty}</td><td>₹${i.total}</td></tr>`;
+      });
 
-    document.getElementById('grandTotal').innerText = grandTotal.toFixed(2);
-  }
+      document.getElementById('billGrandTotal').innerText = grandTotal.toFixed(2);
+    }
 
-  init();
-</script>
+    function finalizeBill() {
+      if(db.activeBill.length === 0) return alert('Bill is empty!');
+      
+      // Deduct Stock
+      db.activeBill.forEach(bItem => {
+        db.inventory[bItem.invIndex].qty -= bItem.qty;
+      });
+
+      window.print();
+      db.activeBill = [];
+      saveDB();
+      renderBill();
+    }
+
+    // CREDIT NOTE (CN)
+    function processCN() {
+      const idx = document.getElementById('cnItemSelect').value;
+      const qty = parseInt(document.getElementById('cnQty').value);
+
+      if(idx === "" || !qty) return alert('Select item and quantity!');
+      
+      db.inventory[idx].qty = Math.max(0, db.inventory[idx].qty - qty);
+      saveDB();
+      alert('Credit Note Issued: Stock Adjusted Successfully!');
+    }
+
+    // ADD HEAD
+    function addHead() {
+      const title = document.getElementById('newHeadTitle').value.trim();
+      if(title && !db.heads.includes(title)) {
+        db.heads.push(title);
+        saveDB();
+        document.getElementById('newHeadTitle').value = '';
+      }
+    }
+
+    window.onload = loadDB;
+  </script>
 </body>
 </html>
